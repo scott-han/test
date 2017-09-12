@@ -1,0 +1,427 @@
+Some thoughts on what to look out for when tuning file-io, and general system performance...
+
+//-----------------------------------------------------------------------------------------
+
+For the use of large memory pages to take effect, the user must have "Lock pages in memory" privilege enabled. 
+
+This could be achieved via 
+control_panel->administrative_tools->local_security_policy->local_policies->user_rights_assignment->lock_pages_in_memory 
+and then: add relevant users such as yourself; 
+
+Also, the following privileges need to be enabled (in a similar fashion as per above):
+SE_MANAGE_VOLUME_NAME a.k.a. "Perform volume maintenance tasks" or "Manage the files on a volume"
+SE_PROF_SINGLE_PROCESS_NAME a.k.a. "Profile single process"
+SE_INCREASE_QUOTA_NAME a.k.a. "Adjust memory quotas for a process"
+
+Then log-out, log-in.
+
+//-----------------------------------------------------------------------------------------
+
+Firstly, even if only for security considerations, the production system ought to have a separate partition (zeroed-out prior to initial deployment) dedicated to the data being published/stored. This is mainly due to performance-enabling code to allow for fully async. disk io. 
+
+There are other elements to take care of for performance reasons, namely from: 
+https://support.microsoft.com/en-us/kb/156932
+"
+There are a number of reasons why I/O operations complete synchronously even if you have coded for asynchronous operation:
+Compression
+One obstruction to asynchronous operation is NTFS compression. The file system driver will not access compressed files asynchronously; instead all operations are just made synchronous. This does not apply to files that are compressed with utilities similar to COMPRESS or PKZIP.
+NTFS Encryption
+Similar to Compression, file encryption causes the system driver to convert asynchronous I/O to synchronous. If the files are decrypted, the I/O requests will be asynchronous.
+Extending a File
+Another reason that I/O operations are completed synchronously is the operations themselves. On Windows NT, any write operation to a file that extends its length will be synchronous.
+
+NOTE: Applications can make the previously mentioned write operation asynchronous by changing the Valid Data Length of the file by using the SetFileValidData function, and then issuing a WriteFile.
+
+Using SetFileValidData (which is available on Windows XP and later versions), applications can efficiently extend files without incurring a performance penalty for zero-filling them.
+
+Because the NTFS file system does not zero-fill the data up to the valid data length (VDL) that is defined by SetFileValidData, this function has security implications where the file may be assigned clusters that were previously occupied by other files. Therefore, SetFileValidData requires that the caller have the new SeManageVolumePrivilege enabled (by default, this is assigned only to administrators). 
+"
+
+Whilst the actual data files are most likely to go onto plattetr HDD, the indicies (given that such have been designed to scale well with presence of extremely large amounts of data) would be better-off placed on a flash-based medium (solid state drives). Even though the flash-based medium is generally a big "no no" for the archival of data -- this is beacause indicies can be re-generated from the actual data files in case of data corruption on the flash storage.
+
+As for the HDD platter drives -- naturally, having some sort of RAID configuration is of benefit (if RAID-0 is a "no no" for critical data then RAID-10 with dedicated UPS may be just fine).
+Moreover, having natively-supported 4k sector size (as opposed to 512) would also be rather nice.
+
+As an example of how much difference Raid configuration and tuning makes, the following (albeit light) scenarios were tested...
+System configuration as: 
+Windows 7 Professional
+Processor Intel(R) Xeon(R) CPU E5-2637 v2 @ 3.50GHz, 3501 Mhz, 4 Core(s), 4 Logical Processor(s)
+1.8GHZ 32GB RAM
+Allowing all of the default antivirus activities and writing to platter HDD (even the indicies -- as splitting indicies to different partition/volume is not yet supported in our code) without any defragmentation.
+HDD (phys sector 4k but logical only 512 -- due to the way system was built by Dell on arrival, we could re-tune/re-build later on if need be -- I have currently skipped this step in order to save on development time, etc.)
+running server as: ./amqp_0_9_1/server.exe 
+and two (3rd party) publishing clients (on the same box, each publishing to it's own topic): rabbitmq-c-0.5.2/examples/amqp_sendstring localhost 5672 "" topic_name "payload text"
+with each message carrying over 150KB in payload 
+With our server's IO-to-disk synchronising timer occuring every second...
+
+... the following data throughput rates were observed (for each Raid configuration 2 physical platter HDDs were used):
+
+RAID-1 with write-back policy was producing between 100 and 120 MB/s sustained troughput when writing to C (system-drive) 
+RAID-0 with write-through policy was only capable of achieving between 50 to 79 MB/s rates when writing to E (non system-drive) 
+RAID-0 WITH WRITE-BACK POLICY, HOWEVER, WAS ABLE TO FLY AT >250MB/S SUSTAINED RATES when writing to E (non system-drive)
+
+The said system was achieving closer to 450/500MB/s throughput rate before hitting the platter HDD's sustained IO capacity.
+
+With respect to software tuning at the OS level, the following springs to mind:
+(*) Format your data NTFS drive with large unit allocation (cluster) sizes. It appears that, at least if using NTFS, formatting your data partition (i.e. where the actual files will go) with cluster-size of 64k (as opposed to default 4k) tends to improve overall performance not only in terms of throughput (MB/s) but also in terms of how long it takes to sparsify overly long files (if using sparsification in the first place that is). We ought to remember though that NTFS sector size and cluster size are two different things. So running the info-printing command like this:
+	PS C:\Windows\system32> fsutil fsinfo ntfsinfo c:
+	[...]
+	Bytes Per Sector  :                512
+	Bytes Per Physical Sector :        512
+	Bytes Per Cluster :                4096
+	Bytes Per FileRecord Segment    :  1024
+	[...]
+shows sector both sizes (volume sector and physical drive sector) as 512, yet cluster size is 4k
+
+(*) Things like file-scaning anti-virus programs are best to be turned off. Whilst it is not advisable to do so for the whole system, the said anti-virus program would usually allow for 'white-listing' of various locations -- and so it would be better if the partition/HDD/SDD dedicated for the data storage are left "unscanned on the fly".
+(*) Disabling "last modified timestamp" may also increase performance (as the underlying system won't need to hit it's kernel-level, possibly synchronous, mechanisms). Experimentally-speaking doing something like this may be a start (in cmd.exe):
+fsutil behavior set DisableLastAccess 1
+in registry this is at:
+HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\NtfsDisableLastAccessUpdate
+(**) additional aspects can be tuned with turning off legacy 8.3 filenames
+fsutil behavior set d: disable8dot3 1
+or in registry (set value to 1, default is 2)
+HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\NtfsDisable8dot3NameCreation
+(*) Naturally if NTFS still needs defragmentation, then such may well be experimented with.
+(*) Turning off indexing of files may also help: either locally on a given volume/database where the data is being written to or more globally (e.g. windows 7 would have something like services.msc then disabling the "windows search" service).
+(*) Turning off SuperFetch (a service which runs on windows) as such can have negative effect on allocation of large-memory-pages (otherwise windows readily fails to allocate the needed amount even if extremely large, e.g. Gigs, free memory is still available -- got to do with memory fragmentation issues and how windows chooses when to/not move virtual memory around and flush various stand-by thingies)...
+in registry relevant keys would be:
+HKLM\SYSTEM\CurrentControlSet\Control\SessionManager\Memory Management\PrefetchParameters\EnablePrefetcher
+HKLM\SYSTEM\CurrentControlSet\Control\SessionManager\Memory Management\PrefetchParameters\EnableSuperfetch
+(*) On a question of CPU scheduling, right-click computer, advanced properties, performance -- select to favour the background programs -- this may allow for longer quantum per therad quotas (thereby limiting CPU-cache-trashing and context-swithching frequency/overhead when system decides to update thread-quota for scheduling... at the price of 'human-interface' responsiveness).
+A more-controlled set of options would be in
+HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl\Win32PrioritySeparation													
+from https://technet.microsoft.com/library/Cc976120
+" The value of this entry is a 6-bit bitmask consisting of three sets of two bits (AABBCC). Each set of two bits determines a different characteristic of the optimizing strategy.
+The highest two bits (AABBCC) determine whether each processor interval is relatively long or short.
+The middle two bits (AABBCC) determine whether the length of the interval varies or is fixed.
+The lowest two bits (AABBCC) determine whether the threads of foreground processes get more processor time than the threads of background processes each time they run.  "
+A good binary mask for server-level app would be:
+011000
+which is what the gui-clicking method should be setting the registry to.
+
+(*) Another point, applicable mostly to systems with large amounts of RAM -- an assumption applicable to most of the synapse-deployment scenarious, with respect to being able to use MEM_LARGE_PAGES allocation is to try the following registry edit (from https://technet.microsoft.com/en-au/library/bb123610%28v=exchg.65%29.aspx as well as http://smallvoid.com/article/winnt-memory-decommit.html and http://community.spiceworks.com/topic/179160-windows-server-memory-fragmentation):
+"
+To help reduce virtual memory fragmentation, you can increase the size of the HeapDeCommitFreeBlockThreshold setting in the heap manager by changing the value of the following registry key:
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager
+
+
+Value name: HeapDeCommitFreeBlockThreshold
+Value type: REG_DWORD
+Value data: 0x00040000 (This is the recommended starting value.)
+Value default: not present
+For more information about the HeapDeCommitFreeBlockThreshold registry key, click the following article number to view the article in the Microsoft Knowledge Base:
+315407 The "HeapDecommitFreeBlockThreshold" registry key 
+"
+The above won't guarantee compactness of active physical-memory-pages, but it will help in preventing fragmentation in various 3rd party apps that may be running on the system.
+Naturally, the additional attention to reducing how many apps are running is also improtant (i.e. if performance is of importance, then do not run apps you don't strictly need in the first place -- a natural concept when dealing with server system-configurations).
+One may further try with a 2Meg block threshold (which is the usual large mem page size in current systems): 2097152 (decimal).
+
+
+Minor update on the small (1-byte) payload messages throughput (before maxing-out RAM -- so as per 'realtime-data' bursts capabilities) the updated figures (from rev. 58/59) are > 700,000 messages per second (on the same as above system configuration and runnig server with "--concurrency_hint 2" option).
+
+On the subject of lock-contention in threaded environments, it may be of interest to experiment with spinlocks (although it does require recompiling code... e.g. in boost.asio, include/boost/asio/detail/impl/win_mutex.ipp changing the value in InitializeCriticalSectionAndSpinCount -- the good news is though that in this case, asio itself need not be rebuilt -- as this change is a part of header only modified code and is done directly on the installed location of headers... making sure not to affect the other apps in your building environment of course). So something like: if (!::InitializeCriticalSectionEx(&crit_section_, 8192, CRITICAL_SECTION_NO_DEBUG_INFO | RTL_CRITICAL_SECTION_FLAG_DYNAMIC_SPIN)) in win_mutex.ipp should be a good-enough start for further investigation...
+
+Another note is on configuring NIC (network interface card). For example, explictly downloading from Intel website their driver for I210-gigabit card had exposed much more configuration options in the driver of the card. This had subsequently allowed to drop the latency (in latency-related tests) from 240micros down to 180micros.
+
+//------------------------------------------------------------------
+
+More on the NIC tuning and Windows.
+
+The following settings could be of help:
+
+netsh int tcp set heuristics wsh=disabled
+netsh int tcp set global congestionprovider=ctcp 
+netsh interface tcp show 
+
+(more settings ought to be available just by interacting with the 'netsh' program).
+may be with these:
+netsh interface tcp set global ecncapability=enabled timestamps=enabled autotuninglevel=experimental rss=enabled  
+... windows 8 also should have rsc=enabled support (Receive Segment Coalescing State), plus lots more (including some powershell commands which are not supported in W7)
+
+Generally speaking one would want TCP Chimney Offloading as optionally-on and NetDMA to off.
+
+For later versions (server 2016 etc.) Powershell is used to set various elements:
+Set-NetTCPSetting -DelayedAckTimeoutMs 1 -SettingName DatacenterCustom
+Set-NetTCPSetting -DelayedAckFrequency 1 -SettingName DatacenterCustom
+Set-NetTCPSetting -Timestamps Enabled -SettingName DatacenterCustom
+New-NetTransportFilter -SettingName DatacenterCustom -Protocol TCP
+Get-NetTRansportFilter
+
+for bandwidth:
+Set-NetTCPSetting -DelayedAckTimeoutMs 200 -SettingName DatacenterCustom
+Set-NetTCPSetting -DelayedAckFrequency 3 -SettingName DatacenterCustom
+Set-NetTCPSetting -Timestamps Enabled -SettingName DatacenterCustom
+Set-NetTCPSetting -InitialRtoMs 300 -SettingName DatacenterCustom
+Set-NetTCPSetting -MinRtoMs 300 -SettingName DatacenterCustom
+
+//------------------------------------------------------------------------------
+
+Enable-NetAdapterRsc *
+
+//------------------------------------------------------------------------------
+
+Why not using NetDMA...
+from https://www.osronline.com/showthread.cfm?link=265736
+
+Jeffrey Tippet [MSFT]
+xxxxxx@microsoft.com
+	
+Join Date: 29 Mar 2010
+Posts To This List: 380
+NetDMA support
+> Any clue why was this feature not supported Win 8 on wards?
+
+I removed NetDMA in Windows 8.  Hopefully, I have slightly more than a clue :)
+
+The purpose of NetDMA was to reduce CPU usage by offloading memcpy to a generic 
+offload engine. 
+
+But in networking, we tend to handle fairly small buffers.  A typical network 
+buffer tends to not be larger than 1500 bytes.  (Yes we can do LSOs of many 
+kilobytes, but NetDMA was limited to only 2 pages of memory per transaction, so 
+at most NetDMA should be compared to an 8kb buffer.)
+
+Which uses less CPU:
+1. Setting up a DMA offload to the hardware & continuing when the hardware 
+interrupts its completion
+2. memcpy 1500 bytes on the CPU
+
+With newer CPUs, the answer tends to be #2.  
+
+Since the whole purpose of NetDMA was to reduce CPU usage, and it wasn't even 
+providing a clear CPU reduction, that makes NetDMA a dubious benefit.  Add to 
+that it had low adoption (not many vendors implemented a NetDMA provider), and 
+the value of keeping the feature wasn't there.  Its competitor, memcpy, is 
+simpler, better-supported, easier to debug, and is sometimes even faster.
+
+
+> Is there any other alternative provided for this NetDMA? 
+
+memcpy.
+
+
+> Suppose I need this support in my solution, what other feature has replaced 
+this?
+
+You don't need this support.  Once common misconception is that NetDMA is "how 
+network adapters should do DMA".  The feature has a misleading name.  NetDMA is 
+actually "how a generic memcpy offload engine can make its services available to 
+the OS".  If you need to do DMA to talk to your hardware, we have APIs for that. 
+ More than enough APIs, actually.  NDIS, WDF, and WDM all have APIs for DMA.  
+These APIs are fully supported and are not related to NetDMA.  See for example 
+https://msdn.microsoft.com/en-us/library/windows/hardware/ff543260(v=vs.85).aspx 
+
+
+If you need to expose your NIC's memcpy offload engine to the OS... are you sure 
+you NEED this?  It will be very difficult to beat the main CPU.  Also, building 
+a bunch of hardware to speed up memcpy isn't really the best use of your 
+time/silicon.  The OS isn't stupid; it's not sitting there memcpying buffers all 
+the time.
+
+If you need to consume memcpy offload from your own hardware... you don't need 
+to route things through NetDMA APIs.  (In fact, I suggest you avoid it even 
+where the OS supports it.)  Just talk directly to your hardware; you have all 
+the access to it.
+
+If you need to consume memcpy offload from somebody else's hardware... sorry, 
+the OS can't help you.  That was never possible on any OS release; the NetDMA 
+consumer API was private and only used by TCPIP.  You can contact the vendor 
+directly, and see if they're willing to give you a direct API to their hardware. 
+ There is no generic hardware-agnostic API to this.  NetDMA might have been that 
+hardware-agnostic API in theory, but in practice very few vendors implemented 
+it, so it wasn't very general.
+
+//------------------------------------------------------------------------------
+
+Why not using DCA...
+from https://msdn.microsoft.com/en-us/library/windows/hardware/ff546436%28v=vs.85%29.aspx
+
+Direct Cache Access (DCA)
+Note  The NetDMA interface is not supported in Windows 8 and later.
+
+Direct cache access (DCA) provides a mechanism for NetDMA clients to indicate that destination data is targeted for a CPU cache. 
+
+//-------------------------------------------------------------------------------
+
+Some things to look-out for with TCP chimney offloading:
+
+Chimney may have compatibility issues with firewall (prior to W8) as well as link aggregation (link aggregation because the entire TCP-stack is offloaded to the NIC -- just one more reason to use 10Gbps NIC).
+
+Although the following link has the info which may help with the link aggregation:
+https://support.microsoft.com/en-us/kb/951037
+
+Some OEMs have decided to implement their network adapter teaming solutions so that they coexist with TCP Chimney Offload. See the network adapter teaming service documentation to determine whether you can use TCP Chimney offload together with this service.
+
+//-------------------------------------------------------------------------------
+
+to test if chimney offloading works:
+netstat -nt | grep -i offloaded
+
+and/or
+
+netsh interface tcp show chimneystats
+netsh interface tcp show chimneyports
+netsh interface tcp show chimneyapplications
+
+to set chimney to on
+netsh int tcp set global chimney=enabled 
+or
+netsh int tcp set global chimney=automatic
+
+//-------------------------------------------------------------------------------
+
+Some of the network cards that may be of interest (could be outdated though):
+SolarFlare: SFN5162F, SFN5122F, SFN6122F
+may by Intel: X520-SR2, Intel X540-DA2
+
+//-------------------------------------------------------------------------------
+
+Some of the TCP tuning parameters:
+
+MaxFreeTcbs
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
+
+edit/create MaxFreeTcbs -> value of 65536. 
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
+
+GlobalMaxTcpWindowSize -> dword value of 65535 or 131072 or 2097152 or 16777216
+
+but also see https://technet.microsoft.com/en-us/library/cc938219.aspx 
+where TcpWindowSize can override global max size on per-interface basis.
+
+About SACK (selective ACKs). If really wanting to try setting it manually, then the following may be of help:
+HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters 
+SackOpts, REG_DWORD, 0 disables 1 enables
+SACK however may be *automatically* disabled when used in presence of TCP offloading; and may not be adjustable at all on W7 when used without TCP offloading... so there may not be any benefit in tweaking it.
+
+//-------------------------------------------------------------------------------
+
+Tcp1323Opts
+
+HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters 
+
+set value to 3 (window scaling and timestamps are on)
+
+//-------------------------------------------------------------------------------
+
+on some systems it may be possible to:
+netsh interface tcp show supplemental 
+and then change the initial congestion window size
+
+//-------------------------------------------------------------------------------
+
+GPEDIT.msc
+
+computer config -> administrative templates -> network -> Qos Packet Scheduler
+
+disable or reserve value of zero.
+
+or in some machines:
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Psched]
+NonBestEffortLimit -> dword:00000000
+
+//-------------------------------------------------------------------------------
+
+
+Very important TCP tunning for cases where apps cannot set default socket buffer sizes (esp for the sending buffers, the receiving buffers don't matter much if one is using receive auto-tuning)...
+
+DWORD
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Afd\Parameters]
+DefaultReceiveWindow = 16384
+DefaultSendWindow = 16384
+or 16777216
+
+should be rounded to a multiple of memory page size (e.g. 4096).
+
+//-------------------------------------------------------------------------------
+
+Also important if wanting to increase initial congesting window size (in tcp-slow start behaviour)
+
+Installing and configuring
+get hotfix at http://support.microsoft.com/kb/2472264
+
+then 
+netsh interface tcp show supplemental
+and you should see something like:
+
+TCP Supplemental Parameters
+‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+Minimum RTO (msec) : 300
+Initial Congestion Window (MSS) : 2
+Delayed Ack Timeout (msec) : 200
+
+then:
+netsh interface tcp set supplemental template=custom icw=10
+netsh interface tcp set supplemental template=custom
+
+//-------------------------------------------------------------------------------
+We either want to disable QoS Packet Scheduler in the Network driver propertries; or at least adjust the settings. 
+
+from https://answers.microsoft.com/en-us/windows/forum/windows8_1-performance/qos-packet-scheduler-bug/5793456c-a5be-48de-abd8-839d9fcbf452
+
+Something of interest:
+
+The default system behavior is that all 100% bandwidth is available, however, if there is a running application that indicates to the OS it needs to send high priority/real time data, then as long as it has the socket open, Windows will restrict “best effort” traffic to 80% of the bandwidth so that high priority traffic can be accommodated. Basically, applications can make this request to the operating system for QoS support using the QoS application programming interfaces (APIs) in Windows and this only applies if a specific app is requesting QoS.
+
+If you'd like to change how much bandwidth is reserved for QoS (the default is 20% of the total bandwidth), do the following:
+
+Note: Please have a restore point created on the computer before performing the task below, if incorrect steps are applied we can revert back to the original settings with this restore point.
+
+ 1. Make sure you're logged in as "Administrator".
+
+ 2. Navigate to START, Run and type: gpedit.msc
+
+ 3. Navigate to Local Computer Policy > Administrative Templates > Network > QOS Packet Scheduler
+
+ 4. In the right window, double-click the limit reservable bandwidth setting
+
+ 5. On the setting tab, check the enabled setting.
+
+ 6. Where it says "Bandwidth limit %", change it to read 0 (or whatever percentage you want to reserve for high priority QoS data)
+
+ 7. Click OK, close gpedit.msc
+
+Under START > This PC > My Network Connections > View Network Connections, right-click on your connection and under Properties (where it lists your protocols), make sure QOS Packet Scheduler is enabled.
+
+HOWEVER, IF YOU DO NOT NEED TO PRIORITIZE NETWORK TRAFFIC AND ITS WORKS FINE WITHOUT QOS PACKET SCHEDULER YOU MAY CHOOSE TO KEEP IT DISABLED.
+
+//-------------------------------------------------------------------------------
+
+http://www.speedguide.net/articles/windows-8-10-2012-server-tcpip-tweaks-5077 has interesting point about network throttling:
+Network Throttling Index (Gaming)
+By default, Windows 8 continues to implement a network throttling mechanism to restrict the processing of non-multimedia network traffic to 10 packets per millisecond (a bit over 100 Mbits/second). The idea behind such throttling is that processing of network packets can be a resource-intensive task, and it may need to be throttled to give prioritized CPU access to multimedia programs. In some cases, such as Gigabit networks and some online games, for example, it is beneficial to turn off such throttling all together for achieving maximum throughput.
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile
+NetworkThrottlingIndex=ffffffff  (DWORD, default: 10, recommended: 10 for media sharing, ffffffff for gaming and max throughput, valid range: 1 through 70 decimal or ffffffff to completely disable throttling)
+It is only recommended to change this setting in saturated Gigabit LAN environments, where you do not want to give priority to multimedia playback. Reportedly, disabling throttling by using ffffffff can also help reduce ping spikes in some online games. Games that may be affected by this throttling: Source Engine games (TF2, Left 4 Dead, CS:S), HoN, CoD, Overlord series.
+
+//-------------------------------------------------------------------------------
+
+For lower latency IO (essentially prioritising minimisation of latency in a detriment to the maximisation of bandwidth) setting the following (essentially immediate ACK) may help (in conjunction with using TCP-NODELAY option in the applications' socket).
+
+-------
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\<Interface GUID>
+On the Edit menu, click Add Value, and then create the following registry value:
+Value name: TcpDelAckTicks
+Data type: REG_DWORD
+Value data: 0
+
+Default value: 2
+Range: 0–6 ( 100-millisecond intervals ) 
+Description: Specifies the time interval that defines the end of a segment stream. When this interval elapses between the receipt of TCP segments, TCP considers the segment stream to be complete, and it sends an ACK message to acknowledge the segment. Otherwise, TCP acknowledges every other segment only.
+
+-------
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\<Interface GUID>
+On the Edit menu, point to New, and then click DWORD Value.
+Name the new value TcpAckFrequency, and assign it a value of 1.
+
+Quit Registry Editor.
+Restart Windows for this change to take effect.
+
+do note however, that this will cause the whole computer to minimise TCP latency at the expense of more traffic on the network (ACKs).
+
+Description: The TcpAckFrequency value specifies the number of ACKs that will be outstanding before the delayed ACK timer is ignored. (some older systems may nede hotfixes to be applied before this settings has any affect).
+
+//-------------------------------------------------------------------------------

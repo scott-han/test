@@ -1,0 +1,33 @@
+{
+	"config" : {
+		"secure-http" : false
+	},
+  "repositories": [
+        {
+            "type": "svn",
+            "url": "http://source.dataprocessors.com.au/svn/SynapseClient/"
+        },
+        {
+            "type": "svn",
+            "url": "http://source.dataprocessors.com.au/svn/thrift/"
+        },
+				{
+            "type": "svn",
+            "url": "http://source.dataprocessors.com.au/svn/thrift",
+            "package-path": "dist",
+            "branches-path": false,
+            "tags-path": false
+        },
+				{
+            "type": "git",
+						"url": "https://github.com/php-amqplib/php-amqplib.git/"
+				}    
+    ],
+  "require": {
+       "php-amqplib/php-amqplib": "dev-master",
+			 "dataprocessors/php-synapseclient": "dev-master",
+			 "dataprocessors/thrift": "dev-master",
+			 "apache/thrift": "dev-master",
+			 "apache/thrift-dp": "dev-master"
+  }
+}

@@ -1,0 +1,140 @@
+//----------------------------------------
+
+To install as windows sevice, one would do something like:
+
+sc create Synapse binpath= "c:\synapse\synapse.exe --run_as_service --log_root c:\synapse\logs --database_root c:\synapse\database"
+
+... and to mark for deletion, something like:
+sc delete Synapse
+
+Then sys-admins et. al. can start/stop the service via the control panel 'services' applet (the service there will be visible under the "Synapse" name).
+
+//----------------------------------------
+
+Please note that as per standard 'sc' syntax requirements from Microsoft, there is a space needed after equal character, i.e. 
+binpath=<SPACE>"c:\....." 
+
+//----------------------------------------
+
+On the slight topic of "sc stop" vs "net stop". 
+The sc stop only schedules the stoppage of service, wheras net stop awaits till the service has actually stopped (similar observations were made in relation to the starting of the service).
+
+//----------------------------------------
+
+If running anti-virus program (e.g. Kaspersky) it is strongly recommended to explicitly add synapse.exe file to the list of trusted/excluded programs (usually done by explictly specifying the full path of the installed executable to the antivirus suite control program). One of the empirical tests had shown that Kaspersky (e.g. when running with "application privilege control" module enabled) is capable of not only freezing the synapse server but also freezing the whole computer (i.e. it is not possible to shutdown the whole Windows box gracefully, but rather with a hard-reset)... this generally points to the buggy Kaspersky (or any other antivirus) suite codebase (as synapse does not have any drivers, and yet it is kernel-level driver/etal that is the only one capable of locking the whole of the computer/Windows kernel/system).
+
+//----------------------------------------
+
+Supported command line options:
+
+--version Prints out current build info (date, time of the build the version svn revision etc.) and exits
+
+--run_as_service (no value, just by itself) ought to be used when installing service. If running as command line utility (e.g. direct invocation from cmd.exe or similar) then do not mention this option at all.
+
+--nice_performance_degradation Number
+Governs how nice (or mean) Synapse is with regards to lacking performance-enabling resources on the target box.
+Tip: if not sure and dont have the time to setup for performance mode, use --nice_performance_degradation 20
+
+	Meaning of Number values (roughly defined at the moment, exact values are subject to drastic change in future releases):
+
+	20 means be really nice and assume poor system configuration (lack of large page memory support, no special admin rights on behalf of the user, etc). Use this option when running on a system without much care for proper setup/configuration/performance/etc. 
+
+	10 allows running server on a properly-dedicated-to-server box, but with other apps still being resident/and-of-importance so to speak. Will try to allocate/lock various performance-efficient memory, but if unable to do so will automatically fallback to the regular memory.
+
+	0 (default) means try to get best resources, if not able then try to make best resources available to Synapse at the expense of other apps/system, if not able fallback to regular resources (whilst logging all of the failed attempts).
+
+	-40 should try to reclaim performance resources but terminate if such fails (i.e. will not fallback to regular resources).
+
+	-50 will terminate on any failed memory allocation (e.g. lack of large memory page support, no special privileges held by user etc. see http://source/svn/tdc/synapse/trunk/info_etc/system_tuning_thoughts.txt as this is rather volumnous and outside the context of this note).
+
+--log_root Directory
+Top level dir where Synapse will write out its log files.
+Do NOT point to the existing directory where there are other files (non synapse-generated output).
+
+--listen_on host:port
+Plain tcp to listen on. Default is printed on startup.
+
+--ssl_listen_on host:port
+SSL tcp to listen on (can be used concurrently with --listen_on).
+
+--ssl_key Filepath
+SSL key file.
+
+--ssl_certificate Filepath
+SSL key file.
+
+--listen_size N
+How many pending TCP connections 'accept' socket will allow to queue.
+
+--so_rcvbuf N
+Size of receiving sockets buffer (for all IO in every socket) size (in bytes).
+
+--so_sndbuf N
+Size of sending sockets buffer (for all IO in every socket) size (in bytes).
+
+--database_root Path_To_Folder
+A top level dir where Synapse will store all of its topics. Do not mess with the files by hand (consider opaque).
+Do NOT point to the existing directory where there are other files (non synapse-generated output).
+
+--reserve_memory_size N{G,M}
+Amount of RAM Synapse will try to reserve for itself (e.g. large memory pages). Can be qualified as 3G (3 Gig) or 1000M (1000 megabytes) or just 1000 (1000 bytes). Suggested size is in Gigs. This allows Synapse to reduce future running-out of large memory page resources. Usually this option is done when/if synapse is running on a dedicated box as service (i.e. during the startup of the box).  
+
+--memory_alarm_threshold N{G,M}
+Refuse any further interaction if roughly-estimated memory-consumption is over the specified threshold (same size qualifications allowed as per --reserve_memory_size option).
+
+--database_alarm_threshold N{G,M}
+Same as for --memory_alarm_threshold but only for the hard drive space.
+
+--realtime_priority (this option has no value, acts like a flag).
+EXPERIMENTAL. Run synapse with highest possible CPU priority.
+
+--tcp_loopback_fast_path (this option has no value, acts like a flag).
+EXPERIMENTAL. When connections are made over localhost, utilize fast-path acceleration available in Windows 8 and above (server 2012 and above). Must be used in correct conjunction with firewall rules (do NOT enable custom callouts in Windows Filtering Platform) as well as used by the client application also.
+
+--processor_affinity N
+EXPERIMENTAL. Assign/pin server process to run only on selected processors. Meaning of the parameter as well as its limitations (e.g. currently running only on up to 64 CPUs concurrently as per any other Windows process) can be found here (i.e. official M$ doco for SetProcessAffinityMask function: https://msdn.microsoft.com/en-us/library/windows/desktop/ms686223(v=vs.85).aspx
+In simplest of cases, supplying a bitmask vector where each bit represents a processor (1 for enabled-to-run-on, 0 for not allowed-to-run-on) should suffice. For example value of 1 means 1st processor only. Value of 2 means 2nd processor only. Value of 4 means 3rd processor only.  Value of 3 means 1st and 2nd processors, value of 7 means 1st three processors... etc. etc. etc.
+
+--IO_Service_Concurrency N
+How many concurrent threads Synapse will allow to run on any given IO service (IOCP port, Boost.Asio io_service == IOCP port more or less). Defaults to number of physical cores in a system, without counting the hypertheaded cores but encompassing all NUMA nodes.
+
+--IO_Service_Concurrency_Reserve_Multiplier N
+EXPERIMENTAL. How many threads to allocate in reserve for *each* of the concurrent thrtead in a given IO service. Reserve threads usually never run, but rarely/potentially may be utilised if the current IO thread blocks (it should not block, but sometimes the situation may be beyond Synapse's control). Defaults to 8.
+
+--IO_Services_Size N
+EXPERIMENTAL. Use multiple io_service in Boost.Asio underlying infrastructure. Cannot be less than 1 (which is also the default).
+
+Note. So give or take a few, total threads Synapse will *create* are: 
+IO_Service_Concurrency * IO_Service_Concurrency_Reserve_Multiplier * IO_Services_Size
+However, total *active* threads in the vast majority of times would be less than:
+IO_Service_Concurrency * IO_Services_Size
+
+Thereby by default there's 80/20 spilt between 'at the ready' threadpool size vs actually active/used threads; so don't be alarmed if Synapse looks like may be using a lot of threads, it is not.
+
+--Busy_Poll (this option has no value, acts like a flag).
+EXPERIMENTAL. Improves latency. Esssentially does not block on any of the IO actions (instead busy-polling and checking for 'are you there' type of data). Should be used together with --IO_Services_Size, --IO_Service_Concurrency, --IO_Service_Concurrency_Reserve_Multiplier, --processor_affinity (and may be --realtime_priority) to guarantee some 'free' CPUs/cores to handle other (non-busy-polling) activities (suggested scenario is to have at least 1 or 2 non-busy-polling cores). Performance in latency department improves because threads stay more current (scheduler-wise) as well as not needing to be 'notified and woken-up/activated' of the available data. 
+
+An example may be something like this (but dont use verbatim -- depends on the hardware architecture):
+Synaspe.exe --realtime_priority --processor_affinity 1048575 --IO_Service_Concurrency 1 --database_root d:\xxx --listen_on ult-tdc-util1:5672 --IO_Service_Concurrency_Reserve_Multiplier 1 --Busy_Poll --IO_Services_Size 8
+The above was used on a dual-socket Xeon server with 2 CPUS each with 10 cores and Hyperthreading turned on (i.e. 40 logical processors). The key to understand here is: 
+	(*) processor affinity is locking Synaspe to reside on the same CPU socket (latency is not adversely affected by migration between CPU-sockets/NUMA-nodes); 
+	(*) busy polling (and possibly optionally realtime priority) make threads stay resident and deprecate extra delays with binary-IO notifications;
+	(*) various IO serivces concurrency fields insure that there is 1 busy polling thread per essentially 1 processor *and* that not all of them aare used (only 8 in the example) meaning others are free to perform other (system, or timing of Boost.Asio) tasks, etc.
+
+
+--Periodic_Logging_Interval N (>= 2)
+Positive number (in seconds units). Values lower than 2 will be clamped at 2 seconds. 
+Time intertval at which synapse prints-out/logs various stats like 'messages per second'. This can be increased, thereby potentially helping with some latency measurements (albeit ever so lightly), but definitely helping with the size of generated log files. 
+
+--Time_Refresh_Resolution N (>= 100000)
+EXPERIMENTAL. Time quantization interval Synapse uses when inferring current time. 
+Positive number (in microseconds units). Values lower than 100000 will be clamped at 100000 (100ms). Essentially Synapse (for performance reasons) when timestamping messages and generating other time-based information infers the time (even if with microsecond precision at times) at a lower than microsecond refresh-rate (i.e. messages arriving within say 100ms are likely to be timestamped with the same time value). This, lower-refresh rate, allows for a balance between performance vs. precision. In some deployment cases (esp. when publishers will start timestamp their data) it  ay be possible to increase the period for refresh resolution so that time-updates happen at ever less than 100ms intervals. Increasing this parameter will do just that.
+
+
+//----------------------------------------
+
+Some ways to stop server when running from cmd.exe is either by typing an exclammation character followed by enter (!-<ENTER>); or by CTRL-C (former will work with any shells inclusive of Msys2, Cygwin, Msys and latter will work only with native windows shells such as cmd.exe etc.)
+
+//----------------------------------------
+
+

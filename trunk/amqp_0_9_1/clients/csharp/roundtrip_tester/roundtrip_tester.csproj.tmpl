@@ -1,0 +1,447 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7331ED49-BCDC-4391-935C-67C22D33204C}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>roundtrip_tester</RootNamespace>
+    <AssemblyName>roundtrip_tester</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Oracle.DataAccess, Version=2.112.1.0, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=AMD64">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RabbitMQ.Client, Version=0.0.0.0, Culture=neutral, processorArchitecture=AMD64" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Thrift, Version=0.9.2.0, Culture=neutral, processorArchitecture=MSIL" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\AcquisitionReference.cs">
+      <Link>DataProcessors\Contests4\AcquisitionReference.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Address.cs">
+      <Link>DataProcessors\Contests4\Address.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\AvailableOffer.cs">
+      <Link>DataProcessors\Contests4\AvailableOffer.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\AvailableOffers.cs">
+      <Link>DataProcessors\Contests4\AvailableOffers.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\BehaveImageValue.cs">
+      <Link>DataProcessors\Contests4\BehaveImageValue.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\BehaveValue.cs">
+      <Link>DataProcessors\Contests4\BehaveValue.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Behaviour.cs">
+      <Link>DataProcessors\Contests4\Behaviour.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\BettingStyleEnum.cs">
+      <Link>DataProcessors\Contests4\BettingStyleEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\BooleanReason.cs">
+      <Link>DataProcessors\Contests4\BooleanReason.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ClassHistory.cs">
+      <Link>DataProcessors\Contests4\ClassHistory.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ComboNumberEnum.cs">
+      <Link>DataProcessors\Contests4\ComboNumberEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Comment.cs">
+      <Link>DataProcessors\Contests4\Comment.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Contest.cs">
+      <Link>DataProcessors\Contests4\Contest.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ContestBonus.cs">
+      <Link>DataProcessors\Contests4\ContestBonus.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ContestBonusList.cs">
+      <Link>DataProcessors\Contests4\ContestBonusList.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ContestRecord.cs">
+      <Link>DataProcessors\Contests4\ContestRecord.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Contests.cs">
+      <Link>DataProcessors\Contests4\Contests.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ContestSection.cs">
+      <Link>DataProcessors\Contests4\ContestSection.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Coordinates.cs">
+      <Link>DataProcessors\Contests4\Coordinates.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Currency.cs">
+      <Link>DataProcessors\Contests4\Currency.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\DecimalWithUnit.cs">
+      <Link>DataProcessors\Contests4\DecimalWithUnit.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\DecimalWithUnitOrder.cs">
+      <Link>DataProcessors\Contests4\DecimalWithUnitOrder.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Dog.cs">
+      <Link>DataProcessors\Contests4\Dog.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Entities.cs">
+      <Link>DataProcessors\Contests4\Entities.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Entity.cs">
+      <Link>DataProcessors\Contests4\Entity.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Equipment.cs">
+      <Link>DataProcessors\Contests4\Equipment.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\EquipmentHistory.cs">
+      <Link>DataProcessors\Contests4\EquipmentHistory.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Factor.cs">
+      <Link>DataProcessors\Contests4\Factor.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\FactorValue.cs">
+      <Link>DataProcessors\Contests4\FactorValue.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Field.cs">
+      <Link>DataProcessors\Contests4\Field.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Futurity.cs">
+      <Link>DataProcessors\Contests4\Futurity.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Hint.cs">
+      <Link>DataProcessors\Contests4\Hint.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Horse.cs">
+      <Link>DataProcessors\Contests4\Horse.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Lineage.cs">
+      <Link>DataProcessors\Contests4\Lineage.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Location.cs">
+      <Link>DataProcessors\Contests4\Location.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MarginList.cs">
+      <Link>DataProcessors\Contests4\MarginList.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MarginText.cs">
+      <Link>DataProcessors\Contests4\MarginText.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Market.cs">
+      <Link>DataProcessors\Contests4\Market.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MarketStatusEnum.cs">
+      <Link>DataProcessors\Contests4\MarketStatusEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Meeting.cs">
+      <Link>DataProcessors\Contests4\Meeting.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MinMaxCurrency.cs">
+      <Link>DataProcessors\Contests4\MinMaxCurrency.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MinMaxDecimal.cs">
+      <Link>DataProcessors\Contests4\MinMaxDecimal.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MinMaxInteger.cs">
+      <Link>DataProcessors\Contests4\MinMaxInteger.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\MinMaxText.cs">
+      <Link>DataProcessors\Contests4\MinMaxText.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Official.cs">
+      <Link>DataProcessors\Contests4\Official.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\OfficialEnum.cs">
+      <Link>DataProcessors\Contests4\OfficialEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Ownership.cs">
+      <Link>DataProcessors\Contests4\Ownership.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\OwnershipHistory.cs">
+      <Link>DataProcessors\Contests4\OwnershipHistory.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Participant.cs">
+      <Link>DataProcessors\Contests4\Participant.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ParticipantRecord.cs">
+      <Link>DataProcessors\Contests4\ParticipantRecord.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Pedigree.cs">
+      <Link>DataProcessors\Contests4\Pedigree.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Person.cs">
+      <Link>DataProcessors\Contests4\Person.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Pick.cs">
+      <Link>DataProcessors\Contests4\Pick.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Picks.cs">
+      <Link>DataProcessors\Contests4\Picks.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\PlayStatus.cs">
+      <Link>DataProcessors\Contests4\PlayStatus.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\PlayStatusEnum.cs">
+      <Link>DataProcessors\Contests4\PlayStatusEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\PointValue.cs">
+      <Link>DataProcessors\Contests4\PointValue.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Poolsize.cs">
+      <Link>DataProcessors\Contests4\Poolsize.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\PredictionsTime.cs">
+      <Link>DataProcessors\Contests4\PredictionsTime.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\PredictionTime.cs">
+      <Link>DataProcessors\Contests4\PredictionTime.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Prize.cs">
+      <Link>DataProcessors\Contests4\Prize.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Prizes.cs">
+      <Link>DataProcessors\Contests4\Prizes.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Rating.cs">
+      <Link>DataProcessors\Contests4\Rating.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Ratings.cs">
+      <Link>DataProcessors\Contests4\Ratings.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ReserveOrder.cs">
+      <Link>DataProcessors\Contests4\ReserveOrder.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\RunnerSection.cs">
+      <Link>DataProcessors\Contests4\RunnerSection.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Sale.cs">
+      <Link>DataProcessors\Contests4\Sale.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Sales.cs">
+      <Link>DataProcessors\Contests4\Sales.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\ScratchTypeEnum.cs">
+      <Link>DataProcessors\Contests4\ScratchTypeEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Selection.cs">
+      <Link>DataProcessors\Contests4\Selection.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Selections.cs">
+      <Link>DataProcessors\Contests4\Selections.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\SelectionStatusEnum.cs">
+      <Link>DataProcessors\Contests4\SelectionStatusEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\SelectionTeam.cs">
+      <Link>DataProcessors\Contests4\SelectionTeam.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\SimplifiedEntity.cs">
+      <Link>DataProcessors\Contests4\SimplifiedEntity.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\StartingPosition.cs">
+      <Link>DataProcessors\Contests4\StartingPosition.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\StateFuturities.cs">
+      <Link>DataProcessors\Contests4\StateFuturities.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Statistic.cs">
+      <Link>DataProcessors\Contests4\Statistic.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\StewardWarning.cs">
+      <Link>DataProcessors\Contests4\StewardWarning.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\SurfaceEnum.cs">
+      <Link>DataProcessors\Contests4\SurfaceEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\tbase_with_delta_rhs_field.cs">
+      <Link>DataProcessors\Contests4\tbase_with_delta_rhs_field.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\TextExtended.cs">
+      <Link>DataProcessors\Contests4\TextExtended.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\TimeWithUnit.cs">
+      <Link>DataProcessors\Contests4\TimeWithUnit.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Training.cs">
+      <Link>DataProcessors\Contests4\Training.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Trap.cs">
+      <Link>DataProcessors\Contests4\Trap.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Trophies.cs">
+      <Link>DataProcessors\Contests4\Trophies.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Trophy.cs">
+      <Link>DataProcessors\Contests4\Trophy.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\User.cs">
+      <Link>DataProcessors\Contests4\User.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Vacant.cs">
+      <Link>DataProcessors\Contests4\Vacant.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\VetRecord.cs">
+      <Link>DataProcessors\Contests4\VetRecord.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\VideoRatings.cs">
+      <Link>DataProcessors\Contests4\VideoRatings.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\Warning.cs">
+      <Link>DataProcessors\Contests4\Warning.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Contests4\WeatherRecord.cs">
+      <Link>DataProcessors\Contests4\WeatherRecord.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\BetTypeEnum.cs">
+      <Link>DataProcessors\Shared\BetTypeEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Boolean.cs">
+      <Link>DataProcessors\Shared\Boolean.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Date.cs">
+      <Link>DataProcessors\Shared\Date.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Decimal.cs">
+      <Link>DataProcessors\Shared\Decimal.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Integer.cs">
+      <Link>DataProcessors\Shared\Integer.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\PedigreeEnum.cs">
+      <Link>DataProcessors\Shared\PedigreeEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\SportEnum.cs">
+      <Link>DataProcessors\Shared\SportEnum.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\tbase_with_delta_rhs_field.cs">
+      <Link>DataProcessors\Shared\tbase_with_delta_rhs_field.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Text.cs">
+      <Link>DataProcessors\Shared\Text.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Time.cs">
+      <Link>DataProcessors\Shared\Time.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Shared\Timestamp.cs">
+      <Link>DataProcessors\Shared\Timestamp.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Waypoints\tbase_with_delta_rhs_field.cs">
+      <Link>DataProcessors\Waypoints\tbase_with_delta_rhs_field.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Waypoints\waypoint.cs">
+      <Link>DataProcessors\Waypoints\waypoint.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\..\thrift\trunk\src\csharp\DataProcessors\Waypoints\waypoints.cs">
+      <Link>DataProcessors\Waypoints\waypoints.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\..\..\..\federated_serialisation\trunk\utils\utils.cs">
+      <Link>utils.cs</Link>
+    </Compile>
+    <Compile Include="..\common\synapse_client.cs">
+      <Link>synapse_client.cs</Link>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.5.1">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.5.1 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

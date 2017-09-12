@@ -1,0 +1,19 @@
+#! /bin/sh -x
+
+# early days...
+
+# generate private key (with password) ...
+#openssl genrsa -aes256 -out key.pem 1024
+# ... without password
+openssl genrsa -out key.pem 1024
+
+# generate certificate request
+openssl req -new -key key.pem -out request.pem -subj "/C=AU/ST=NSW/L=Sydney/O=DataProcessors/OU=TDC/CN=ult-leon-d" -batch
+
+# for self-signed certificate...
+openssl x509 -req -days 377 -in request.pem -signkey key.pem -out certificate.pem
+# ... or if getting a properly-registered one
+# openssl x509 -inform der -in certificate.crt -out certificate.pem
+
+# in the above, if expiry is needed to be determined in the already existing certificate:
+# openssl x509 -text -in certificate.pem

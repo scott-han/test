@@ -1,0 +1,19 @@
+#!/bin/sh -x
+
+Bail()
+{
+	set +x
+	echo "FAILED: " ${0} ${*}
+	exit 1
+}
+
+RSYNC_ARGS_HEADERS="-arv --include '*/' --include '*.h' --include '*.tcc' --exclude '*' --prune-empty-dirs"
+RSYNC_ARGS_LIBS="-arv --include '*/' --include '*.pdb' --include '*.lib' --exclude '*' --prune-empty-dirs"
+
+# INSTALL_ROOT=${WORK}/SynapseClient/trunk/src/Cpp/
+INSTALL_ROOT=${THRIFT_ROOT}/
+
+mkdir -p $INSTALL_ROOT/include/data_processors/synapse
+rm -fr $INSTALL_ROOT/include/data_processors/synapse/*
+eval rsync --exclude "**Visual_studio**" --exclude "**udt_relay**" --exclude "**info_etc**" --exclude "**cmake**" --exclude "*udt/third_party**" --exclude "*udt/src/tests**" --exclude "**clients/csharp**" --exclude "**clients/delphi**" --exclude "**clients/php**" --exclude "**clients/python**" ${RSYNC_ARGS_HEADERS} ${WORK}/tdc/synapse/trunk/ $INSTALL_ROOT/include/data_processors/synapse || Bail "Failed to copy synapse headers etal into install dir."
+

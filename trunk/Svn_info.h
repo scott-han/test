@@ -1,0 +1,1 @@
+#define SVN_INFO "Relative URL: ^/synapse/trunk. Revision2038."
