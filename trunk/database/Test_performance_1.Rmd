@@ -1,0 +1,254 @@
+---
+title: "Synapse Performance Test 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(plotly)
+#require(compiler)
+#enableJIT(3)
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 4)
+```
+
+## Test Environment
+**This test includes the following machines:**
+
+``` {r computer_info, echo=F}
+comp=read.csv("computer.txt", sep=",", header = F)
+comp[,5] = comp[,5] / (1024 * 1024 * 1024)
+comp=cbind(comp,rep(F, nrow(comp)))
+comp[1,ncol(comp)] = T
+colnames(comp) = c("COMPUTER", "OS", "Version", "Architecture", "Memory (G)", "CPU Name", "Logical Cores", "CPU Speed", "Sockets", "Server")
+knitr::kable(comp)
+```
+
+## Other Test Information
+
+``` {r test_date, echo=F}
+tdate=read.csv("test_date.txt", sep="\t", header=F)
+colnames(tdate) = c("Name", "Value")
+knitr::kable(tdate)
+```
+
+
+## Test Result
+
+### Throughput
+
+**Below diagram shows the total throughput of our Synapse server (read+write) in 1000 messages per second.**
+
+``` {r test_result, echo=F, fig.width=10, message=F, warning=F}
+data=read.csv("result.csv", sep=",", header=T)
+perf=read.csv("perf.csv", sep=",", header=T)
+data$Msg_size=as.factor(data$Msg_size)
+data$Read=data$Read/1000
+data$Write=data$Write/1000
+perf$Msg_size=as.factor(perf$Msg_size)
+
+relative.zero=min(data$Time)
+
+data$RelativeTime = data$Time - relative.zero
+perf$RelativeTime = perf$Time - relative.zero
+
+p=ggplot(data,aes(x=Msg_size, y=Read+Write))+geom_boxplot(aes(fill=Type, color=Type))+ylab("Total(x1000)")
+
+ggplotly(p) %>% layout(boxmode="group")
+perf$CPU=perf$CPU/comp[1,7]
+
+data$cat="1"
+perf$cat="2"
+data.perf=merge(data, perf, all=T)
+first_size=unique(data$Msg_size)[1]
+```
+
+
+**Throughput changing during the period**
+
+
+``` {r test_result_line, echo=F, fig.width=10, message=F, warning=F}
+output <- htmltools::tagList()
+temp=subset(data.perf, Msg_size==first_size)
+
+for (type in unique(data.perf$Type)) 
+{
+  y=plot_ly() %>% 
+    add_lines(data=subset(temp, cat == "1" & Type == type & RelativeTime > 0), x=~RelativeTime, y=~(Read+Write)/5, name="throughput") %>%
+    add_lines(data=subset(temp, cat == "2" & Type == type & RelativeTime > 0), x=~RelativeTime, y=~CPU, name="cpu") %>%
+    add_lines(data=subset(temp, cat == "2" & Type == type & RelativeTime > 0), x=~RelativeTime, y=~DiskIO/1000000, name="diskio") %>%
+    add_lines(data=subset(temp, cat == "2" & Type == type & RelativeTime > 0), x=~RelativeTime, y=~Network/1000000, name="network") %>%
+    layout(title=paste0(type, "(", "Message size=", first_size, ")"), xaxis=(list(title="Seconds")), yaxis=(list(title="")))
+  output[[type]] = y
+}
+output
+```
+
+
+**Percentile of total throughput is shown below (1000 messages per second)**
+
+``` {r test_result_percentile, echo=F}
+x=c(50, 10, 5, 1, 0.5, 0.1, 0.01) / 100
+throughput=NULL
+for (msg.size in unique(data$Msg_size))
+{
+  for (type in unique(data$Type))
+  {
+    a=subset(data, Msg_size == msg.size & Type == type)
+    temp=quantile(a$Read+a$Write, x)
+    d=data.frame(t(temp))
+    temp=cbind(type, d)
+    temp=cbind(msg.size, temp)
+    mean=mean(a$Read+a$Write)
+    sd=sd(a$Read+a$Write)
+    temp=cbind(temp, mean)
+    temp=cbind(temp,sd)
+    throughput=rbind(throughput, temp)
+  }
+}
+colnames(throughput) = c("Msg_size", "Type", "50%", "90%", "95%", "99%", "99.5%", "99.9%", "99.99%", "mean", "sd")
+knitr::kable(throughput)
+
+```
+
+
+**Below diagram shows the read throughput only (1000 messages per second)**
+
+```  {r test_result_read, echo=F, fig.width=10, message=F, warning=F}
+p=ggplot(data,aes(x=Msg_size, y=Read, colour=Type))+geom_boxplot()+scale_y_continuous("Read(x1000)")
+ggplotly(p) %>% layout(boxmode="group")
+```
+
+
+### Latency
+
+``` {r test_result_latency, echo=F, fig.width=10, message=F, warning=F}
+d.latency=read.csv("latency.csv", sep=",", header=T)
+d.latency$Msg_size=as.factor(d.latency$Msg_size)
+d.latency$latency=d.latency$latency + 1
+p=ggplot(d.latency, aes(x=Msg_size, y=latency))+geom_boxplot(aes(colour=Type))+scale_y_log10("Latency(us)")
+ggplotly(p) %>% layout(boxmode="group")
+```
+
+**Latency changing during the test period**
+
+``` {r test_result_latency_line, echo=F, fig.width=10, message=F, warning=F}
+d.latency.200=subset(d.latency, Msg_size == first_size)
+p=ggplot(data=d.latency.200, aes(x=Sequence, y=latency, color=Type, label=latency))+geom_line()+xlab("Sequence")+ylab("Latency(us)")+scale_y_log10()+ggtitle(paste("Message size is", first_size))
+ggplotly(p)
+```
+
+
+**Percentile of latency is shown below (Latency is in micro second)**
+
+``` {r test_result_latency_percentile, echo=F}
+x=c(50, 90, 95, 99, 99.5, 99.9, 99.99, 99.999) / 100
+throughput=NULL
+for (msg.size in unique(d.latency$Msg_size))
+{
+  for (type in unique(d.latency$Type))
+  {
+    a=subset(d.latency, Msg_size == msg.size & Type == type)
+    temp=quantile(a$latency, x)
+    d=data.frame(t(temp))
+    temp=cbind(type, d)
+    temp=cbind(msg.size, temp)
+    mean=mean(a$latency)
+    temp=cbind(temp, mean)
+    sd=sd(a$latency)
+    temp=cbind(temp, sd)
+    throughput=rbind(throughput, temp)
+  }
+}
+colnames(throughput) = c("Msg_size", "Type", "50%", "90%", "95%", "99%", "99.5%", "99.9%", "99.99%", "99.999%", "mean", "sd")
+knitr::kable(throughput)
+```
+
+### Latency With Different Message Publish Rate
+
+``` {r test_result_latency_msg_rate_1, echo=F, fig.width=10, message=F, warning=F}
+if (file.exists("mrlatency.csv"))
+{
+  d.mrlatency=read.csv("mrlatency.csv", sep=",", header=T)
+  if (nrow(d.mrlatency) > 0)
+  {
+    d.mrlatency$Msg_size=as.factor(d.mrlatency$Msg_size)
+    d.mrlatency$latency=d.mrlatency$latency + 1
+    d.mrlatency$FactorType=as.factor(d.mrlatency$Type/1000)
+    p=ggplot(d.mrlatency, aes(x=FactorType, y=latency))+geom_boxplot(aes(colour=Msg_size))+scale_y_log10("Latency(us)")
+    ggplotly(p) %>% layout(boxmode="group", xaxis=list(title="Interval(ms)"))
+  }
+}
+```
+
+**Below table shows the mean of latency while publishing rate is changed (Interval is in micro-second)**
+
+``` {r test_result_latency_msg_rate_2, echo=F}
+if (exists("d.mrlatency") & nrow(d.mrlatency) > 0)
+{
+  x=c(50, 90, 95, 99, 99.5, 99.9, 99.99, 99.999) / 100
+  throughput=NULL
+  for (msg.size in unique(d.mrlatency$Msg_size))
+  {
+    for (type in unique(d.mrlatency$Type))
+    {
+      a=subset(d.mrlatency, Msg_size == msg.size & Type == type)
+      temp=quantile(a$latency, x)
+      d=data.frame(t(temp))
+      temp=cbind(type, d)
+      temp=cbind(msg.size, temp)
+      mean=mean(a$latency)
+      temp=cbind(temp, mean)
+      sd=sd(a$latency)
+      temp=cbind(temp, sd)
+      throughput=rbind(throughput, temp)
+    }
+  }
+  colnames(throughput) = c("Msg_size", "Interval", "50%", "90%", "95%", "99%", "99.5%", "99.9%", "99.99%", "99.999%", "mean", "sd")
+  
+  knitr::kable(throughput[order(throughput[,]$Msg_size, throughput[,]$Interval),])
+}
+```
+
+**Throughput change during the same test period**
+
+``` {r throughput_publishing_rate, echo=F, fig.width=10, message=F, warning=F}
+if (file.exists("throughput.csv"))
+{
+  d.throughput = read.csv("throughput.csv", sep=",", header=T)
+  if (nrow(d.throughput) > 0)
+  {
+    d.throughput$Msg_size=as.factor(d.throughput$Msg_size)
+    d.throughput$Type=as.factor(d.throughput$Type/1000)
+    y=ggplot(d.throughput, aes(x=Type, y=Read))+geom_boxplot(aes(colour=Msg_size))+xlab("Interval(ms)")+ylab("Read(Messages/sec)")
+    ggplotly(y) %>% layout(boxmode="group")
+  }
+}
+```
+
+### CPU Usage
+
+**This diagram shows CPU usage with different message size.**
+
+``` {r test_result_cpu, echo=F, fig.width=10, message=F, warning=F}
+p=ggplot(perf,aes(x=Msg_size, y=CPU))+geom_boxplot(aes(colour=Type))
+ggplotly(p) %>% layout(boxmode="group")
+```
+
+
+### Disk IO
+
+``` {r test_result_diskio, echo=F, fig.width=10, message=F, warning=F}
+perf$DiskIO=perf$DiskIO/1024/1024
+p=ggplot(perf, aes(x=Msg_size, y=DiskIO))+geom_boxplot(aes(colour=Type))+scale_y_continuous("Disk IO (MBps)")
+ggplotly(p) %>% layout(boxmode="group")
+```
+
+
+### Network Usage
+
+``` {r test_result_network, echo=F, fig.width=10, message=F, warning=F}
+perf$Network=perf$Network/128/1024
+p=ggplot(perf, aes(x=Msg_size, y=Network))+geom_boxplot(aes(colour=Type))+scale_y_continuous("Network (Mbps)")
+ggplotly(p) %>% layout(boxmode="group")
+```
